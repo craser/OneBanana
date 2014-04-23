@@ -9,12 +9,26 @@ function MockRenderer() {
     this.suiteStart = function() {};
 }
 
-function MockTest() {
+function MockSuite(name) {
+    this.name = name || "MockSuite";
+    this.passed = 0;
+    this.failed = 0;
+    this.renderer = new MockRenderer();
+    this.test = function() {};
+    this.run = function() {};
+}
+
+function MockTest(name) {
+    this.name = name || "MockTest";
     this.passed = 0;
     this.failed = 0;
     this.pass = function() {};
     this.fail = function() {};
     this.run = function() {};
+}
+
+function MockConsole() {
+    this.log = function() {}
 }
 
 new OneBanana({ name: "OneBanana" }).test(
@@ -230,5 +244,71 @@ new OneBanana({ name: "OneBanana" }).test(
         );
         test.ok((suite.passed == 4), "Must reflect 4 passed asserts.");
         test.ok((suite.failed == 5), "Must reflect 5 failed asserts.");
+    }
+);
+
+new OneBanana({ name: "ConsoleRenderer" }).test(
+    function consoleRenderer(test) {
+        function contains(s, c) { return s.indexOf(c) > -1; };
+        var message = "";
+        var console = new MockConsole();
+        console.log = function(m) { message += m + "\\n"; };
+        var r = new OneBanana.ConsoleRenderer(console);
+
+        var t = new MockTest();
+        t.passed = 57;
+        t.failed = 71;
+
+        var s = new MockSuite();
+        s.passed = 23;
+        s.failed = 13;
+
+        for (p in r) {
+            test.mustCall(r, p, 1);
+        }
+
+        r.log("LOGMESSAGE");
+        test.ok(contains(message, "LOGMESSAGE"), "Passed correct message: '" + message + "'");
+        message = "";
+ 
+        r.suiteStart(s);
+        test.ok(contains(message, s.name), "Passed correct message: '" + message + "'");
+        message = "";
+
+        r.suiteDone(s);
+        test.ok(contains(message, "SUITE"), "Passed correct message: '" + message + "'");
+        test.ok(contains(message, "FAILED"), "Passed correct message: '" + message + "'");
+        test.ok(contains(message, "23"), "Passed correct message: '" + message + "'");
+        test.ok(contains(message, "13"), "Passed correct message: '" + message + "'");
+        message = "";
+
+        s.failed = 0;
+        r.suiteDone(s);
+        test.ok(contains(message, "SUITE"), "Passed correct message: '" + message + "'");
+        test.ok(contains(message, "PASSED"), "Passed correct message: '" + message + "'");
+        message = "";
+
+
+        r.testStart(t);
+        test.ok(contains(message, t.name), "Passed correct message: '" + message + "'");
+        message = "";
+
+        r.testDone(t);
+        test.ok(contains(message, "FAILED"), "Passed correct message: '" + message + "'");
+        test.ok(contains(message, "p: 57"), "Passed correct message: '" + message + "'");
+        test.ok(contains(message, "f: 71"), "Passed correct message: '" + message + "'");
+        message = "";
+
+        r.assertPassed("ASSERTPASSED");
+        test.ok(contains(message, "ASSERTPASSED"), "Passed correct message: '" + message + "'");
+        message = "";
+
+        r.assertFailed("ASSERTFAILED");
+        test.ok(contains(message, "* FAILED: ASSERTFAILED"), "Passed correct message: '" + message + "'");
+        message = "";
+
+        r.testError("TESTERROR");
+        test.ok(contains(message, "TESTERROR"), "Passed correct message: '" + message + "'");
+        message = "";
     }
 );

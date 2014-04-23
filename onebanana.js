@@ -147,34 +147,35 @@ OneBanana.Renderer = function Renderer(def) {
     return def;
 };    
 
-OneBanana.ConsoleRenderer = function ConsoleRenderer() {
+OneBanana.ConsoleRenderer = function ConsoleRenderer(c) {
+    c = c || console;
     this.log = function(msg) {
-        console.log("    " + msg);
+        c.log("    " + msg);
     },
     this.assertPassed = function(msg) {
-        console.log("    " + msg);
+        c.log("    " + msg);
     },
     this.assertFailed = function(msg) {
-        console.log("  * FAILED: " + msg);
+        c.log("  * FAILED: " + msg);
     },
     this.testError = function(msg) {
-        console.log("    " + msg);
+        c.log("    " + msg);
     },
     this.testStart = function(test) {
-        console.log(test.name + ":");
+        c.log(test.name + ":");
     },
     this.testDone = function (test) {
         var status = "(p: " + test.passed + ", f: " + test.failed + ")";
-        console.log("    " + (test.failed ? "FAILED" : "PASSED") + " " + status);
+        c.log("    " + (test.failed ? "FAILED" : "PASSED") + " " + status);
     },
     this.suiteStart = function(suite) {
-        console.log("Suite: " + suite.name);
+        c.log("Suite: " + suite.name);
     },
     this.suiteDone = function(suite) {
-        console.log("Finished Suite: " + suite.name);
-        console.log("    asserts passed: " + suite.passed);
-        console.log("    asserts failed: " + suite.failed);
-        console.log("SUITE " + ((suite.failed) ? "FAILED" : "PASSED"));
+        c.log("Finished Suite: " + suite.name);
+        c.log("    asserts passed: " + suite.passed);
+        c.log("    asserts failed: " + suite.failed);
+        c.log("SUITE " + ((suite.failed) ? "FAILED" : "PASSED"));
     };
 };
 
