@@ -164,9 +164,6 @@ OneBanana.ConsoleRenderer = function ConsoleRenderer(c) {
     this.assertFailed = function(msg) {
         c.log("  * FAILED: " + msg);
     },
-    this.testError = function(msg) {
-        c.log("    " + msg);
-    },
     this.testStart = function(test) {
         c.log(test.name + ":");
     },

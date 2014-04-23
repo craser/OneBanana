@@ -2,7 +2,6 @@ function MockRenderer() {
     this.log = function() {};
     this.assertPassed = function() {};
     this.assertFailed = function() {};
-    this.testError = function() {};
     this.testStart = function() {};
     this.testDone = function() {};
     this.suiteDone = function() {};
@@ -287,7 +286,7 @@ new OneBanana({ name: "ConsoleRenderer" }).test(
         s.passed = 23;
         s.failed = 13;
 
-        for (p in r) {
+        for (p in r) { // Make sure we call everything.
             test.mustCall(r, p);
         }
 
@@ -329,10 +328,6 @@ new OneBanana({ name: "ConsoleRenderer" }).test(
 
         r.assertFailed("ASSERTFAILED");
         test.ok(contains(message, "* FAILED: ASSERTFAILED"), "Passed correct message: '" + message + "'");
-        message = "";
-
-        r.testError("TESTERROR");
-        test.ok(contains(message, "TESTERROR"), "Passed correct message: '" + message + "'");
         message = "";
     }
 );
