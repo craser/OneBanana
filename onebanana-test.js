@@ -69,6 +69,30 @@ new OneBanana({ name: "OneBanana" }).test(
         obj.a();
         a.checkCalled();
     },
+    function asserts_mustCallTimes(test) {
+        var t = new MockTest();
+        var a = new OneBanana.Asserts(t);
+        var obj = {
+            a: function() {},
+            b: function() {}
+        };
+
+        test.mustCall(t, "pass");
+        test.mustCall(t, "fail");
+
+        a.mustCall(obj, "a", 3);
+        a.mustCall(obj, "b", 7);
+
+        obj.a();
+        obj.a();
+        obj.a();
+
+        obj.b();
+        obj.b();
+        obj.b();
+
+        a.checkCalled();
+    },
     function asserts_mustNotCall(test) {
         var t = new MockTest();
         var a = new OneBanana.Asserts(t);

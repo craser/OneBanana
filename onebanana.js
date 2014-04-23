@@ -67,8 +67,11 @@ OneBanana.Asserts = function Asserts(test) {
     };
     this.mustCall = function(obj, funcName, times) {
         var check = function() {
-            if (!times) {
-                test.ok((count > 0), "Function " + funcName + " was called.");
+            if (!times && count > 0) {
+                test.pass("Function " + funcName + " was called.");
+            }
+            else if (!times) {
+                test.fail("Function " + funcName + " was not called.");
             }
             else if (count == times) {
                 test.pass("Function " + funcName + " was called " + count + " times.");
@@ -78,7 +81,7 @@ OneBanana.Asserts = function Asserts(test) {
             }
         };
         var count = 0;
-        callChecks.push();
+        callChecks.push(check);
         obj[funcName] = (function(original) {
             return function() {
                 count++;
