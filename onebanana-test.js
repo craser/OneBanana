@@ -264,7 +264,7 @@ new OneBanana({ name: "ConsoleRenderer" }).test(
         s.failed = 13;
 
         for (p in r) {
-            test.mustCall(r, p, 1);
+            test.mustCall(r, p);
         }
 
         r.log("LOGMESSAGE");
