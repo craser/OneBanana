@@ -1,159 +1,53 @@
 function OneBanana(options) {
-
-    function Asserts(test) {
-        var self = this;
-        var callChecks = [];
-        this.ok = function(bool, msg) {
-            bool ? test.pass(msg) : test.fail(msg);
-        };
-        this.fail = function(msg) {
-            test.fail(msg);
-        };
-        this.mustCall = function(obj, funcName, times) {
-            times = (arguments.length > 2) ? times : 1;
-            var count = 0;
-            callChecks.push(function() {
-                if (count != times) {
-                    test.fail("Function " + p + " was called " + count + " times, not " + times);
-                }
-                else {
-                    test.pass("Function " + p + " was called " + count + " times.");
-                }
-            });
-            obj[funcName] = (function(original) {
-                return function() {
-                    count++;
-                    original.apply(obj, arguments);
-                };
-            }(obj[funcName]));
-
-        };
-        this.mustNotCall = function(obj, funcName) {
-            self.mustCall(obj, funcName, 0);
-        };
-        this.checkCalled = function() {
-            while (callChecks.length) {
-                var c = callChecks.pop();
-                c();
-            }
-        };
-    }
-
-    function Test(name, f, renderer) {
-        var self = this;
-        
-        this.name = name;
-        this.passed = 0;
-        this.failed = 0;
-        this.run = function() {
-            try {
-                reset();
-                var a = new Asserts(self);
-                renderer.testStart(self);
-                try { f(a) }
-                catch (e) {
-                    self.fail(e);
-                }
-                a.checkCalled();
-            }
-            catch (e) {
-                self.fail("ERROR IN MONKEYTEST FRAMEWORK: " + e);
-            }
-            finally {
-                renderer.testDone(self);
-            }
-        }
-        this.pass = function(msg) {
-            renderer.assertPassed(msg || "ok");
-            self.passed++;
-        };
-        this.fail = function(msg) {
-            renderer.assertFailed(msg || "ok");
-            self.failed++;
-        };
-
-        function reset() {
-            self.passed = 0;
-            self.failed = 0;
-        }
-    }
-
-    this.runAsync = function(k) {
-        try {
-            reset();
-            var a = new Asserts(self);
-            renderer.testStart(self);
-            try {
-                f(a, k);
-            }
-            catch (e) {
-                self.fail(e);
-            }
-    };
-
-    function Renderer(def) {
-        var defaults = new ConsoleRenderer();
-        def = def || {};
-        for (p in defaults) {
-            def[p] = def[p] || defaults[p];
-        }
-        return def;
-    };    
-
     var self = this;
     var tests = [];
+
     this.name = options.name;
     this.passed = 0;
     this.failed = 0;
-    this.renderer = new Renderer(options.renderer);
-    this.asynchronous = false;
-    this.testAsync = fucntion() {
-        self.asynchronous = true;
-        self.test.apply(self, arguments);
-    };        
+    this.renderer = new OneBanana.Renderer(options.renderer);
+
+    this.testAsync = function() {
+        for (var i = 0; i < arguments.length; i++) {
+            var f = arguments[i];
+            var t = new OneBanana.Test(f, self.renderer, true);
+            tests.push(t);
+        }
+        self.run();
+    };
+
     this.test = function() {
         for (var i = 0; i < arguments.length; i++) {
             var f = arguments[i];
-            var t = new Test(f.name, f, self.renderer);
+            var t = new OneBanana.Test(f, self.renderer);
             tests.push(t);
         }
-        self.run()
-    };
-    this.run = function() {
-        self.asynchronous ? runAsynchronous() : runSynchronous();
+        self.run();
     };
 
-    function runAsynchronous() {
+    this.run = function(k) {
         reset();
         self.renderer.suiteStart(self);
-        function next(tests, k) {
-            if (tests.length) {
-                var t = tests.shift();
-                t.run(function() {
-                    next(tests, k);
-                });
-            }
-            else {
-                k();
-            }
-        }
-        function done() {
-            self.renderer.suiteDone(self);
-        }
+        var next = (function() {
+            var i = -1;
+            return function() {
+                i++;
+                if (i < tests.length) {
+                    var test = tests[i];
+                    test.run(function() {
+                        self.passed += test.passed;
+                        self.failed += test.failed;
+                        next();
+                    });
+                }
+                else {
+                    self.renderer.suiteDone(self);
+                    if (k) k();
+                }
+            };
+        })();
         next();
-    }
-
-    function runSynchronous() {
-        reset();
-        self.renderer.suiteStart(self);
-        for (var i = 0; i < tests.length; i++) {
-            var t = tests[i];
-            t.run();
-            this.passed += t.passed;
-            this.failed += t.failed;
-        }
-        self.renderer.suiteDone(self);
-        return this.failed;
+        return self.failed;
     }
 
     function reset() {
@@ -162,7 +56,98 @@ function OneBanana(options) {
     }
 }
 
-function ConsoleRenderer() {
+OneBanana.Asserts = function Asserts(test) {
+    var self = this;
+    var callChecks = [];
+    this.ok = function(bool, msg) {
+        bool ? test.pass(msg) : test.fail(msg);
+    };
+    this.fail = function(msg) {
+        test.fail(msg);
+    };
+    this.mustCall = function(obj, funcName, times) {
+        times = (arguments.length > 2) ? times : 1;
+        var count = 0;
+        callChecks.push(function() {
+            if (count != times) {
+                test.fail("Function " + funcName + " was called " + count + " times, not " + times);
+            }
+            else {
+                test.pass("Function " + funcName + " was called " + count + " times.");
+            }
+        });
+        obj[funcName] = (function(original) {
+            return function() {
+                count++;
+                original.apply(obj, arguments);
+            };
+        }(obj[funcName]));
+
+    };
+    this.mustNotCall = function(obj, funcName) {
+        self.mustCall(obj, funcName, 0);
+    };
+    this.checkCalled = function() {
+        while (callChecks.length) {
+            var c = callChecks.pop();
+            c();
+        }
+    };
+};
+
+OneBanana.Test = function Test(f, renderer, asynchronous) {
+    var self = this;
+    this.name = f.name || "anonymous";
+    this.passed = 0;
+    this.failed = 0;
+    this.run = function(k) {
+        reset();
+        var a = new OneBanana.Asserts(self);
+        renderer.testStart(self);
+        function done() {
+            a.checkCalled();
+            renderer.testDone(self);
+            k();
+        }
+        try {
+            if (asynchronous) {
+                f(a, done);
+            }
+            else {
+                f(a);
+                done();
+            }            
+        }
+        catch (e) {
+            self.fail(e);
+            k();
+        }
+    }
+    this.pass = function(msg) {
+        renderer.assertPassed(msg || "ok");
+        self.passed++;
+    };
+    this.fail = function(msg) {
+        renderer.assertFailed(msg || "ok");
+        self.failed++;
+    };
+
+    function reset() {
+        self.passed = 0;
+        self.failed = 0;
+    }
+};
+
+OneBanana.Renderer = function Renderer(def) {
+    var defaults = new OneBanana.ConsoleRenderer();
+    def = def || {};
+    for (p in defaults) {
+        def[p] = def[p] || defaults[p];
+    }
+    return def;
+};    
+
+OneBanana.ConsoleRenderer = function ConsoleRenderer() {
     this.log = function(msg) {
         console.log("    " + msg);
     },
@@ -191,9 +176,10 @@ function ConsoleRenderer() {
         console.log("    asserts failed: " + suite.failed);
         console.log("SUITE " + ((suite.failed) ? "FAILED" : "PASSED"));
     };
-}
+};
 
-function DomRenderer(container) {
+
+OneBanana.DomRenderer = function DomRenderer(container) {
     ConsoleRenderer.call(this);             // Extends ConsoleRenderer
     container = getContainer(container);
     this.suiteStart = function(suite) {
@@ -274,4 +260,4 @@ function DomRenderer(container) {
             return x;
         }
     }
-}    
+};
