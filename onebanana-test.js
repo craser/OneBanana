@@ -154,7 +154,7 @@ new OneBanana({ name: "OneBanana" }).test(
         t.run(function() {});
         test.ok((t.passed == 1), "Must reflect 1 passed test.");
         test.ok((t.failed == 1), "Must reflect 1 failed test.");
-
+        
         t.run(function() {}); // Run again.  Should get same results.
         test.ok((t.passed == 1), "Must reflect 1 passed test.");
         test.ok((t.failed == 1), "Must reflect 1 failed test.");
@@ -177,7 +177,7 @@ new OneBanana({ name: "OneBanana" }).test(
         test.mustCall(r, "testDone", 3);
         test.mustCall(r, "suiteStart", 1);
         test.mustCall(r, "suiteDone", 1);
-        suite.test(
+        var failed = suite.test(
             function a(t) {
                 t.ok(true, "PASSED");
                 t.ok(true, "PASSED");
@@ -196,6 +196,7 @@ new OneBanana({ name: "OneBanana" }).test(
         );
         test.ok((suite.passed == 4), "Must reflect 4 passed asserts.");
         test.ok((suite.failed == 5), "Must reflect 5 failed asserts.");
+        test.ok((failed == 5), "Correct number failed: " + failed);
     },
     function suite_rerun(test) {
         var r = new MockRenderer();
@@ -209,7 +210,7 @@ new OneBanana({ name: "OneBanana" }).test(
         test.mustCall(r, "testDone", 6);
         test.mustCall(r, "suiteStart", 2);
         test.mustCall(r, "suiteDone", 2);
-        suite.test(
+        var failed = suite.test(
             function a(t) {
                 t.ok(true, "PASSED");
                 t.ok(true, "PASSED");
@@ -228,10 +229,12 @@ new OneBanana({ name: "OneBanana" }).test(
         );
         test.ok((suite.passed == 4), "Must reflect 4 passed asserts.");
         test.ok((suite.failed == 5), "Must reflect 5 failed asserts.");
-
-        suite.run(); // rerun
+        test.ok((failed == 5), "Correct number failed: " + failed);
+        
+        failed = suite.run(); // rerun
         test.ok((suite.passed == 4), "Must reflect 4 passed asserts.");
         test.ok((suite.failed == 5), "Must reflect 5 failed asserts.");
+        test.ok((failed == 5), "Correct number failed: " + failed);
     },
     function suite_testAsync(test) {
         var r = new MockRenderer();

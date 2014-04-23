@@ -21,8 +21,9 @@ function OneBanana(options) {
             var f = arguments[i];
             var t = new OneBanana.Test(f, self.renderer);
             tests.push(t);
+
         }
-        self.run();
+        return self.run();
     };
 
     this.run = function(k) {
