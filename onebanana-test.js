@@ -41,6 +41,42 @@ new OneBanana({ name: "OneBanana" }).test(
         a.ok(true, "PASS");
         a.ok(false, "FAIL");
     },
+    function asserts_expect_pass(test) {
+        var t = new MockTest();
+        var a = new OneBanana.Asserts(t);
+
+        a.expect(3);
+        a.ok(true, "PASSED");
+        a.ok(true, "PASSED");
+        a.ok(true, "PASSED");
+
+        test.mustCall(t, "pass");
+        a.checkCalled();
+    },
+    function asserts_expect_out_of_order(test) {
+        var t = new MockTest();
+        var a = new OneBanana.Asserts(t);
+
+        a.ok(true, "PASSED");
+        a.ok(true, "PASSED");
+        a.ok(true, "PASSED");
+        a.expect(3); // AFTER ok called.
+
+        test.mustCall(t, "pass");
+        a.checkCalled();
+    },
+    function asserts_expect_fail(test) {
+        var t = new MockTest();
+        var a = new OneBanana.Asserts(t);
+
+        a.expect(3);
+        a.ok(true, "PASSED");
+        //a.ok(true, "PASSED");
+        a.ok(true, "PASSED");
+
+        test.mustCall(t, "fail");
+        a.checkCalled();
+    },
     function asserts_mustCall(test) {
         var t = new MockTest();
         var a = new OneBanana.Asserts(t);
@@ -260,7 +296,7 @@ new OneBanana({ name: "OneBanana" }).test(
                 t.ok(false, "FAILED");
                 k();
             },
-            function c(t, k){
+            function c(t, k) {
                 t.ok(true, "PASSED");
                 t.ok(false, "FAILED");
                 t.ok(false, "FAILED");
@@ -270,7 +306,39 @@ new OneBanana({ name: "OneBanana" }).test(
         );
         test.ok((suite.passed == 4), "Must reflect 4 passed asserts.");
         test.ok((suite.failed == 5), "Must reflect 5 failed asserts.");
-    }
+    },
+    function suite_setup(test) {
+        var numCalled = 0;
+        var r = new MockRenderer();
+        var suite = new OneBanana({
+            name: "SUITE",
+            renderer: r,
+            setup: function() { numCalled++; }
+        });
+        test.mustCall(suite, "setup", 3);
+        suite.test(
+            function a(t) { t.ok(true, "PASSED"); },
+            function b(t) { t.ok(true, "PASSED"); },
+            function c(t) { t.ok(true, "PASSED"); }
+        );
+        test.ok((numCalled == 3), "Can't just call suite.setup, must actually call setup function. (numCalled: " + numCalled + ")");
+    },
+    function suite_teardown(test) {
+        var numCalled = 0;
+        var r = new MockRenderer();
+        var suite = new OneBanana({
+            name: "SUITE",
+            renderer: r,
+            teardown: function() { numCalled++; }
+        });
+        test.mustCall(suite, "teardown", 3);
+        suite.test(
+            function a(t) { t.ok(true, "PASSED"); },
+            function b(t) { t.ok(true, "PASSED"); },
+            function c(t) { t.ok(true, "PASSED"); }
+        );
+        test.ok((numCalled == 3), "Can't just call suite.teardown, must actually call the teardown function. (numCalled: " + numCalled + ")");
+    }    
 );
 
 new OneBanana({ name: "ConsoleRenderer" }).test(

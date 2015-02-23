@@ -7,6 +7,14 @@ function OneBanana(options) {
     this.failed = 0;
     this.renderer = new OneBanana.Renderer(options.renderer);
 
+    this.setup = function() {
+        options.setup && options.setup();
+    };
+
+    this.teardown = function() {
+        options.teardown && options.teardown();
+    };
+
     this.testAsync = function() {
         for (var i = 0; i < arguments.length; i++) {
             var f = arguments[i];
@@ -35,9 +43,11 @@ function OneBanana(options) {
                 i++;
                 if (i < tests.length) {
                     var test = tests[i];
+                    self.setup();
                     test.run(function() {
                         self.passed += test.passed;
                         self.failed += test.failed;
+                        self.teardown();
                         next();
                     });
                 }
@@ -60,11 +70,23 @@ function OneBanana(options) {
 OneBanana.Asserts = function Asserts(test) {
     var self = this;
     var callChecks = [];
+    var okCount = 0;
     this.ok = function(bool, msg) {
+        okCount++;
         bool ? test.pass(msg) : test.fail(msg);
     };
     this.fail = function(msg) {
         test.fail(msg);
+    };
+    this.expect = function(n) {
+        callChecks.push(function() {
+            if (n != okCount) {
+                test.fail("Expected " + n + " calls to 'ok', received " + okCount + ".");
+            }
+            else {
+                test.pass("Expected assertions (" + n + ") complete.");
+            }
+        });
     };
     this.mustCall = function(obj, funcName, times) {
         var check = function() {
