@@ -18,7 +18,7 @@ function OneBanana(options) {
     this.testAsync = function() {
         for (var i = 0; i < arguments.length; i++) {
             var f = arguments[i];
-            var t = new OneBanana.Test(f, self.renderer, true);
+            var t = new OneBanana.Test(f, self, true);
             tests.push(t);
         }
         self.run();
@@ -27,7 +27,7 @@ function OneBanana(options) {
     this.test = function() {
         for (var i = 0; i < arguments.length; i++) {
             var f = arguments[i];
-            var t = new OneBanana.Test(f, self.renderer);
+            var t = new OneBanana.Test(f, self);
             tests.push(t);
 
         }
@@ -43,11 +43,9 @@ function OneBanana(options) {
                 i++;
                 if (i < tests.length) {
                     var test = tests[i];
-                    self.setup();
                     test.run(function() {
                         self.passed += test.passed;
                         self.failed += test.failed;
-                        self.teardown();
                         next();
                     });
                 }
@@ -124,7 +122,7 @@ OneBanana.Asserts = function Asserts(test) {
     };
 };
 
-OneBanana.Test = function Test(f, renderer, asynchronous) {
+OneBanana.Test = function Test(f, suite, asynchronous) {
     var self = this;
     this.name = f.name || "anonymous";
     this.passed = 0;
@@ -132,13 +130,15 @@ OneBanana.Test = function Test(f, renderer, asynchronous) {
     this.run = function(k) {
         reset();
         var a = new OneBanana.Asserts(self);
-        renderer.testStart(self);
+        suite.renderer.testStart(self);
         function done() {
             a.checkCalled();
-            renderer.testDone(self);
+            suite.renderer.testDone(self);
+            suite.teardown();
             k();
         }
         try {
+            suite.setup();
             if (asynchronous) {
                 f(a, done);
             }
@@ -153,11 +153,11 @@ OneBanana.Test = function Test(f, renderer, asynchronous) {
         }
     }
     this.pass = function(msg) {
-        renderer.assertPassed(msg || "ok");
+        suite.renderer.assertPassed(msg || "ok");
         self.passed++;
     };
     this.fail = function(msg) {
-        renderer.assertFailed(msg || "ok");
+        suite.renderer.assertFailed(msg || "ok");
         self.failed++;
     };
 
