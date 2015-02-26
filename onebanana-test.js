@@ -154,7 +154,7 @@ new OneBanana({ name: "OneBanana" }).test(
     },
     function test_create(test) {
         var testFunc = function testFunc() {};
-        var t = new OneBanana.Test(testFunc, new MockRenderer());
+        var t = new OneBanana.Test(testFunc, new MockSuite());
         test.ok((t.name === "testFunc"), "Name of Test must be testFunc");
         test.ok((t.passed == 0), "Must init with 0 passed tests.");
         test.ok((t.failed == 0), "Must init with 0 failed tests.");
@@ -163,37 +163,46 @@ new OneBanana({ name: "OneBanana" }).test(
         test.ok(t.run, "Must have a 'run' method.");
     },
     function test_pass(test) {
-        var r = new MockRenderer();
-        r.assertPassed = function(m) { test.ok((m === "PASS MESSAGE"), "Message must be 'PASS MESSAGE'"); };
-        var t = new OneBanana.Test(function() {}, r);
-        test.mustCall(r, "assertPassed");
+        var s = new MockSuite();
+        s.renderer.assertPassed = function(m) { test.ok((m === "PASS MESSAGE"), "Message must be 'PASS MESSAGE'"); };
+        var t = new OneBanana.Test(function() {}, s);
+        test.mustCall(s.renderer, "assertPassed");
         t.pass("PASS MESSAGE");
         test.ok(t.passed == 1, "Must reflect 1 passed test.");
         test.ok(t.failed == 0, "Must reflect 0 failed tests.");
     },
     function test_fail(test) {
-        var r = new MockRenderer();
-        r.assertFailed = function(m) { test.ok((m === "FAILED MESSAGE"), "Message must be 'FAILED MESSAGE'"); };
-        var t = new OneBanana.Test(function() {}, r);
-        test.mustCall(r, "assertFailed");
+        var s = new MockSuite();
+        s.renderer.assertFailed = function(m) { test.ok((m === "FAILED MESSAGE"), "Message must be 'FAILED MESSAGE'"); };
+        var t = new OneBanana.Test(function() {}, s);
+        test.mustCall(s.renderer, "assertFailed");
         t.fail("FAILED MESSAGE");
         test.ok(t.passed == 0, "Must reflect 0 passed test.");
         test.ok(t.failed == 1, "Must reflect 1 failed tests.");
     },
     function test_rerun(test) {
-        var r = new MockRenderer();
-        var t = new OneBanana.Test(function(t) { t.ok(false); t.ok(true); }, r);
-        test.mustCall(r, "testStart", 2);
-        test.mustCall(r, "testDone", 2);
-        test.mustCall(r, "assertPassed", 2);
-        test.mustCall(r, "assertFailed", 2);
+        var s = new MockSuite();
+        var t = new OneBanana.Test(function(t) { t.ok(false); t.ok(true); }, s);
+        test.mustCall(s.renderer, "testStart", 2);
+        test.mustCall(s.renderer, "testDone", 2);
+        test.mustCall(s.renderer, "assertPassed", 2);
+        test.mustCall(s.renderer, "assertFailed", 2);
         t.run(function() {});
-        test.ok((t.passed == 1), "Must reflect 1 passed test.");
-        test.ok((t.failed == 1), "Must reflect 1 failed test.");
+        test.ok((t.passed == 1), "Must reflect 1 passed test. (passed: " + t.passed + ")");
+        test.ok((t.failed == 1), "Must reflect 1 failed test. (failed: " + t.failed + ")");
         
         t.run(function() {}); // Run again.  Should get same results.
-        test.ok((t.passed == 1), "Must reflect 1 passed test.");
-        test.ok((t.failed == 1), "Must reflect 1 failed test.");
+        test.ok((t.passed == 1), "Must reflect 1 passed test. (passed: " + t.passed + ")");
+        test.ok((t.failed == 1), "Must reflect 1 failed test. (failed: " + t.failed + ")");
+    },
+    function test_setup_teardown(test) {
+        var s = new MockSuite();
+        var t = new OneBanana.Test(function(t) { t.ok(true); }, s);
+        test.mustCall(s, "setup");
+        test.mustCall(s, "teardown");
+
+        t.run(function() {}); //
+        test.ok((t.passed = 1), "Run the test.");
     },
     function suite_create(test) {
         var r = new MockRenderer();
