@@ -13,6 +13,8 @@ function MockSuite(name) {
     this.passed = 0;
     this.failed = 0;
     this.renderer = new MockRenderer();
+    this.setup = function() {};
+    this.teardown = function() {};
     this.test = function() {};
     this.run = function() {};
 }
