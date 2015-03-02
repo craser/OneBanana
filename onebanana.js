@@ -206,25 +206,26 @@ OneBanana.ConsoleRenderer = function ConsoleRenderer(c) {
 };
 
 
-OneBanana.DomRenderer = function DomRenderer(container) {
-    ConsoleRenderer.call(this);             // Extends ConsoleRenderer
+OneBanana.DomRenderer = function DomRenderer(container, doc) {
+    OneBanana.ConsoleRenderer.call(this);   // Extends ConsoleRenderer
+    doc = doc || window.document;
     container = getContainer(container);
     this.suiteStart = function(suite) {
         container.innerHTML = "";
-        var title = document.createElement("h1");
-        title.appendChild(document.createTextNode(suite.name));
+        var title = doc.createElement("h1");
+        title.appendChild(doc.createTextNode(suite.name));
         var link = buildReRunLink(function() {
             reset();
             suite.run();
         });
-        title.appendChild(document.createTextNode(" "));
+        title.appendChild(doc.createTextNode(" "));
         title.appendChild(link);
         container.appendChild(title);
     };
 
     this.suiteDone = function(suite) {
-        var div = document.createElement("div");
-        div.appendChild(document.createTextNode(
+        var div = doc.createElement("div");
+        div.appendChild(doc.createTextNode(
             "SUITE " + ((suite.failed) ? "FAILED" : "PASSED") +
                 " (p: " + suite.passed + ", f: " + suite.failed +")"
         ));
@@ -232,9 +233,9 @@ OneBanana.DomRenderer = function DomRenderer(container) {
     };
 
     this.testStart = function(test) {
-        var title = document.createElement("h2");
-        title.appendChild(document.createTextNode(test.name));
-        title.appendChild(document.createTextNode(" "));
+        var title = doc.createElement("h2");
+        title.appendChild(doc.createTextNode(test.name));
+        title.appendChild(doc.createTextNode(" "));
         var link = buildReRunLink(function() {
             reset();
             test.run();
@@ -244,23 +245,23 @@ OneBanana.DomRenderer = function DomRenderer(container) {
     };
 
     this.assertPassed = function(msg) {
-        var div = document.createElement("div");
-        div.appendChild(document.createTextNode(msg));
+        var div = doc.createElement("div");
+        div.appendChild(doc.createTextNode(msg));
         container.appendChild(div);
     };
 
     this.assertFailed = function(msg) {
-        var div = document.createElement("div");
-        div.appendChild(document.createTextNode("FAILED: " + msg));
+        var div = doc.createElement("div");
+        div.appendChild(doc.createTextNode("FAILED: " + msg));
         container.appendChild(div);
     };
 
     this.testDone = function(test) {
-        var div = document.createElement("div");
+        var div = doc.createElement("div");
         var status = test.name
             + ": " + (test.failed ? "FAILED" : "PASSED")
             + " (p: " + test.passed + ", f: " + test.failed + ")";
-        div.appendChild(document.createTextNode(status));
+        div.appendChild(doc.createTextNode(status));
         container.appendChild(div);
         
     };
@@ -270,8 +271,8 @@ OneBanana.DomRenderer = function DomRenderer(container) {
     }
 
     function buildReRunLink(f) {
-        var link = document.createElement("a");
-        link.appendChild(document.createTextNode("(re-run)"));
+        var link = doc.createElement("a");
+        link.appendChild(doc.createTextNode("(re-run)"));
         link.addEventListener("click", f);
         return link;
     }
@@ -279,10 +280,10 @@ OneBanana.DomRenderer = function DomRenderer(container) {
     function getContainer(x) {
         switch (typeof x) {
         case "string":
-            return document.getElementById(x);
+            return doc.getElementById(x);
             break;
         case "undefined":
-            return document.getElementById("monkeytest");
+            return doc.getElementById("monkeytest");
         default:
             return x;
         }

@@ -32,6 +32,71 @@ function MockConsole() {
     this.log = function() {}
 }
 
+// this.suiteStart = function(suite) {
+//     container.innerHTML = "";
+//     var title = document.createElement("h1");
+//     title.appendChild(document.createTextNode(suite.name));
+//     var link = buildReRunLink(function() {
+//         reset();
+//         suite.run();
+//     });
+//     title.appendChild(document.createTextNode(" "));
+//     title.appendChild(link);
+//     container.appendChild(title);
+// };
+
+
+
+function MockNode(tag) {
+    this.children = [];
+    this.attributes = {};
+    this.listeners = {};
+
+    this.tagName = tag;
+
+    this.appendChild = function(child) {
+        this.children.push(child);
+    };
+    this.getChild = function(tag) {
+        var matches = this.children.filter(function(child) { return child.tagName == tag; });
+        return (matches.length > 0) ? matches[0] : null;
+    };
+    this.addEventListener = function(event, listener) {
+        if (!(event in this.listeners)) {
+            this.listeners[event] = [];
+        }
+        this.listeners[event].push(listener);
+    };
+    this.toString = function() {
+        var s = "<" + tag;
+        for (a in this.attributes) {
+            s += " " + a + "=\"" + this.attributes[a] + "\"";
+        }
+        s += ">";
+        this.children.forEach(function(child) {
+            s += child;
+        });
+        s += "</" + tag + ">";
+        return s;
+    };
+}
+
+function MockText(text) {
+    MockNode.call(this, "text");
+    this.toString = function() {
+        return text;
+    };
+}
+
+function MockDocument() {
+    this.createElement = function(tag) {
+        return new MockNode(tag);
+    };
+    this.createTextNode = function(text) {
+        return new MockText(text);
+    };
+}
+
 new OneBanana({ name: "OneBanana" }).test(
     function asserts_ok(test) {
         var t = new MockTest();
@@ -413,3 +478,130 @@ new OneBanana({ name: "ConsoleRenderer" }).test(
         message = "";
     }
 );
+
+new OneBanana({ name: "DomRenderer" }).test(
+    function domRenderer_extends_consoleRenderer(test) {
+        var doc = new MockDocument();
+        var container = doc.createElement("div");
+        var domRenderer = new OneBanana.DomRenderer(container, doc);
+
+        var c = new MockConsole();
+        var consoleRenderer = new OneBanana.ConsoleRenderer(c);
+
+        for (p in consoleRenderer) {
+            test.ok((p in domRenderer), "DomRenderer must have property \"" + p + "\"");
+        }
+    },
+    function domRenderer_suiteStart(test) {
+        function contains(s, t) { return s.indexOf(t) != -1; };
+        var doc = new MockDocument();
+        var container = doc.createElement("div");
+        var r = new OneBanana.DomRenderer(container, doc);
+
+        var s = new MockSuite("SUITE");
+        r.suiteStart(s);
+
+        test.ok(container.getChild("h1"), "Must have an h1 child.");
+        var h1 = container.getChild("h1");
+        
+        test.ok(container.toString() == "<div><h1>SUITE <a>(re-run)</a></h1></div>", "Must produce HTML: <div><h1>SUITE <a>(re-run)</a></h1></div>");
+        var reRun = h1.getChild("a").listeners["click"][0];
+        test.ok((typeof reRun) == "function", "Re-run must be a function. (Found: " + (typeof reRun) + ")");
+        test.ok(reRun, "Must have a click handler to re-run test.");
+        
+
+        test.mustCall(s, "run", 1);   // Must re-run the suite *once*.
+        try {
+            reRun();
+        }
+        catch (e) {
+            test.fail("Exception calling re-run handler: " + e);
+        }
+    },
+    function domRenderer_suiteDone_passed(test) {
+        var doc = new MockDocument();
+        var container = doc.createElement("div");
+        var s = new MockSuite("SUITE");
+        s.passed = 17;
+        s.failed = 0;
+
+        var r = new OneBanana.DomRenderer(container, doc);
+        r.suiteDone(s);
+
+        test.ok(container.toString() == "<div><div>SUITE PASSED (p: 17, f: 0)</div></div>", "Must produce HTML: <div>SUITE PASSED (p: 17, f: 0)</div>");
+    },
+    function domRenderer_suiteDone_failed(test) {
+        var doc = new MockDocument();
+        var container = doc.createElement("div");
+        var s = new MockSuite("SUITE");
+        s.passed = 17;
+        s.failed = 3;
+
+        var r = new OneBanana.DomRenderer(container, doc);
+        r.suiteDone(s);
+
+        test.ok(container.toString() == "<div><div>SUITE FAILED (p: 17, f: 3)</div></div>", "Must produce HTML: <div>SUITE FAILED (p: 17, f: 3)</div>");
+    },
+    function domRenderer_testStart(test) {
+        var doc = new MockDocument();
+        var container = doc.createElement("div");
+        var t = new MockTest("TEST");
+
+        var r = new OneBanana.DomRenderer(container, doc);
+        r.testStart(t);
+
+        test.ok(container.toString() == "<div><h2>TEST <a>(re-run)</a></h2></div>", "Must produce HTML: <div><h2>TEST <a>(re-run)</a></h2></div>");
+        var reRun = container.getChild("h2").getChild("a").listeners["click"][0];
+
+        test.ok((typeof reRun) == "function", "Re-run must be a function. (Found: " + (typeof reRun) + ")");
+        test.ok(reRun, "Must have a click handler to re-run test.");
+        test.mustCall(t, "run", 1);   // Must re-run the suite *once*.
+        try {
+            reRun();
+        }
+        catch (e) {
+            test.fail("Exception calling re-run handler: " + e);
+        }
+    },
+    function domRenderer_assertPassed(test) {
+        var doc = new MockDocument();
+        var container = doc.createElement("div");
+
+        var r = new OneBanana.DomRenderer(container, doc);
+        r.assertPassed("TEST MESSAGE");
+        test.ok(container.toString() == "<div><div>TEST MESSAGE</div></div>", "Must produce HTML: <div><div>TEST MESSAGE</div></div>");
+    },
+    function domRenderer_assertFailed(test) {
+        var doc = new MockDocument();
+        var container = doc.createElement("div");
+
+        var r = new OneBanana.DomRenderer(container, doc);
+        r.assertFailed("TEST MESSAGE");
+        test.ok(container.toString() == "<div><div>FAILED: TEST MESSAGE</div></div>", "Must produce HTML: <div><div>FAILED: TEST MESSAGE</div></div>");
+    },
+    function domRenderer_testDone_passed(test) {
+        var doc = new MockDocument();
+        var container = doc.createElement("div");
+        var t = new MockTest("TEST");
+        t.passed = 17;
+        t.failed = 0;
+
+        var r = new OneBanana.DomRenderer(container, doc);
+        r.testDone(t);
+
+        test.ok(container.toString() == "<div><div>TEST: PASSED (p: 17, f: 0)</div></div>", "Must produce HTML: <div><div>TEST: PASSED (p: 17, f: 0)</div></div>");
+    },
+    function domRenderer_testDone_failed(test) {
+        var doc = new MockDocument();
+        var container = doc.createElement("div");
+        var t = new MockTest("TEST");
+        t.passed = 17;
+        t.failed = 3;
+
+        var r = new OneBanana.DomRenderer(container, doc);
+        r.testDone(t);
+
+        test.ok(container.toString() == "<div><div>TEST: FAILED (p: 17, f: 3)</div></div>", "Must produce HTML: <div><div>TEST: FAILED (p: 17, f: 3)</div></div>");
+    }
+);
+
