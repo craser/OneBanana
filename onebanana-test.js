@@ -97,7 +97,7 @@ function MockDocument() {
     };
 }
 
-new OneBanana({ name: "OneBanana" }).test(
+new OneBanana({ name: "Asserts" }).test(
     function asserts_ok(test) {
         var t = new MockTest();
         t.pass = function(m) { test.ok(m === "PASS", "Assert passed"); };
@@ -211,7 +211,10 @@ new OneBanana({ name: "OneBanana" }).test(
 
         obj.a();
         a.checkCalled();
-    },
+    }
+);
+
+new OneBanana({ name: "Test" }).test(
     function asserts_fail(test) {
         var t = new MockTest();
         t.fail = function(m) { test.ok((m === "FAIL"), "Message must be 'FAIL'"); };
@@ -270,7 +273,40 @@ new OneBanana({ name: "OneBanana" }).test(
 
         t.run(function() {}); //
         test.ok((t.passed = 1), "Run the test.");
+    }
+);
+
+new OneBanana({ name: "Suite",
+                setup: function() {},
+                teardown: (function(originalConfig) {
+                    return function() {
+                        OneBanana.configure(originalConfig);
+                    };
+                }(OneBanana.getConfiguration()))
+              }
+             ).test(
+
+    // This gets into the weirdness of testing a framework USING that framework.
+    function suite_configure(test) {
+        var r = new MockRenderer();
+        OneBanana.configure({ name: "SUITE", renderer: r });
+
+        // Test that the configuration was stored correctly.
+        var c = OneBanana.getConfiguration();
+        test.ok(c.name == "SUITE", "Default Suite name must be 'SUITE'.");
+        test.ok(c.renderer === r, "Default Renderer must be MockRenderer.");
+
+        var s = new OneBanana();
+        test.ok((s.name === "SUITE"), "Suite name must be 'SUITE'.");
+        test.ok((s.renderer === r), "Renderer must be assigned correctly.");        
     },
+    function suite_teardown_check(test) {
+        var c = OneBanana.getConfiguration();
+        test.ok(c.name == null, "Default name should be null. (Found: " + c.name + ")");
+        test.ok(c.renderer instanceof OneBanana.ConsoleRenderer, "Render to the console by default.");        
+    },
+
+
     function suite_create(test) {
         var r = new MockRenderer();
         var suite = new OneBanana({ name: "SUITE", renderer: r});

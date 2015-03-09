@@ -1,8 +1,10 @@
 var OneBanana = (function() {
+
     function Suite(options) {
         var self = this;
         var tests = [];
 
+        options = getOptions(options);
         this.name = options.name;
         this.passed = 0;
         this.failed = 0;
@@ -289,6 +291,34 @@ var OneBanana = (function() {
                 return x;
             }
         }
+    };
+
+    Suite.configure = function(options) {
+        for (p in options) {
+            defaults[p] = options[p];
+        }
+    };
+
+    Suite.getConfiguration = function() {
+        var c = {};
+        for (p in defaults) {
+            c[p] = defaults[p];
+        }
+        return c;
+    };
+
+    function getOptions(options) {
+        options = options || {};
+        for (p in defaults) {
+            if (!(p in options)) {
+                options[p] = defaults[p];
+            }
+        }
+        return options;
+    };
+
+    var defaults = {
+        renderer: new Suite.ConsoleRenderer(console)
     };
 
     return Suite;
