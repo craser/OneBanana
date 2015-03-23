@@ -53,7 +53,7 @@ In your test file (*mytests.js* in this example), tell OneBanana to use a DomRen
 Test Functions
 --------------
 
-A tiny exampel of a OneBanana suite with one trivial test looks like this:
+A tiny example of a OneBanana suite with one trivial test looks like this:
 
     new OneBanana({ name: "Trivial Suite" }).test(
         function silly_test(asserts) {
