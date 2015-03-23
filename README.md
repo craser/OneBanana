@@ -28,7 +28,20 @@ Information about assertions, tests, and runtime errors will be emitted via `con
 Running in the Browser
 ----------------------
 
-If you prefer, you can run tests in a browser by telling your suite to use a DomRenderer:
+If you prefer, you can run tests in a browser. Create an HTML file:
+
+    <html>
+        <head>
+            <title>My Tests</title>
+        </head>
+        <body>
+            <script src="onebanana.js"> </script>
+            <script src="mytests.js"> </script>
+        </body>
+    </html>
+
+
+In your test file (*mytests.js* in this example), tell OneBanana to use a DomRenderer:
 
     new OneBanana("Test Suite", { renderer: new OneBanana.DomRenderer() }).test( // Create a new OneBanana test suite.
         function test_foo(asserts) {...}, // These functions perform your tests.
