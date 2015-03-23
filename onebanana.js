@@ -168,7 +168,8 @@ OneBanana.Test = function Test(f, suite, asynchronous) {
 };
 
 OneBanana.Renderer = function Renderer(def) {
-    var defaults = new OneBanana.ConsoleRenderer();
+    // var defaults = new OneBanana.ConsoleRenderer();
+    var defaults = new OneBanana.DomRenderer();
     def = def || {};
     for (p in defaults) {
         def[p] = def[p] || defaults[p];
@@ -283,7 +284,7 @@ OneBanana.DomRenderer = function DomRenderer(container, doc) {
             return doc.getElementById(x);
             break;
         case "undefined":
-            return doc.getElementById("monkeytest");
+            return doc.body;
         default:
             return x;
         }
