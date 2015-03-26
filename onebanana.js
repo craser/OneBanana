@@ -168,8 +168,7 @@ OneBanana.Test = function Test(f, suite, asynchronous) {
 };
 
 OneBanana.Renderer = function Renderer(def) {
-    // var defaults = new OneBanana.ConsoleRenderer();
-    var defaults = new OneBanana.DomRenderer();
+    var defaults = new OneBanana.ConsoleRenderer();
     def = def || {};
     for (p in defaults) {
         def[p] = def[p] || defaults[p];
