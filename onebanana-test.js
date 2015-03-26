@@ -97,7 +97,7 @@ function MockDocument() {
     };
 }
 
-new OneBanana({ name: "OneBanana" }).test(
+new OneBanana({ name: "Asserts" }).test(
     function asserts_ok(test) {
         var t = new MockTest();
         t.pass = function(m) { test.ok(m === "PASS", "Assert passed"); };
@@ -218,7 +218,10 @@ new OneBanana({ name: "OneBanana" }).test(
         var a = new OneBanana.Asserts(t);
         test.mustCall(t, "fail");
         a.fail("FAIL");
-    },
+    }
+);
+
+new OneBanana({ name: "Test" }).test(
     function test_create(test) {
         var testFunc = function testFunc() {};
         var t = new OneBanana.Test(testFunc, new MockSuite());
@@ -270,7 +273,10 @@ new OneBanana({ name: "OneBanana" }).test(
 
         t.run(function() {}); //
         test.ok((t.passed = 1), "Run the test.");
-    },
+    }
+);
+
+new OneBanana({ name: "Suite" }).test(
     function suite_create(test) {
         var r = new MockRenderer();
         var suite = new OneBanana({ name: "SUITE", renderer: r});
