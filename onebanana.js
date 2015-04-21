@@ -83,13 +83,29 @@ var OneBanana = (function() {
         var self = this;
         var callChecks = [];
         var okCount = 0;
+
+        /**
+         * Assert that the first argument is truthy.
+         *
+         * @param bool - The expression to evaluate for truthiness.
+         * @param msg - A message to display for this assertion.
+         */
         this.ok = function(bool, msg) {
             okCount++;
             bool ? test.pass(msg) : test.fail(msg);
         };
+
+        /**
+         * Fail the test immediately.
+         */
         this.fail = function(msg) {
             test.fail(msg);
         };
+
+        /**
+         * Assert that the specified number of assertions will be made
+         * during the test.
+         */
         this.expect = function(n) {
             callChecks.push(function() {
                 if (n != okCount) {
@@ -100,6 +116,17 @@ var OneBanana = (function() {
                 }
             });
         };
+
+        /**
+         * Assert that the specified function is called during the
+         * test. If 'times' is specified, the method must be called
+         * exactly that number of times. Otherwise, the method must
+         * simply be called one or more times.
+         *
+         * @param obj - the object whose method must be called.
+         * @param funcName - the name of the method which must be called.
+         * @param times - (Optional) The number of times the method must be called.
+         */
         this.mustCall = function(obj, funcName, times) {
             var check = function() {
                 if (!times && count > 0) {
@@ -125,9 +152,18 @@ var OneBanana = (function() {
             }(obj[funcName]));
 
         };
+
+        /**
+         * Assert that the specified function must NOT be called
+         * during the test.
+         *
+         * @param obj - The object whose member method must not be called.
+         * @param funcName - The name of the member function that must not be called.
+         */
         this.mustNotCall = function(obj, funcName) {
             self.mustCall(obj, funcName, 0);
         };
+
         this.checkCalled = function() {
             while (callChecks.length) {
                 var c = callChecks.pop();
