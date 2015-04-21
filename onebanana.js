@@ -1,5 +1,16 @@
 var OneBanana = (function() {
 
+    /**
+     * Creates a new test suite, using the given configuration options
+     * to override the default configuration. The default
+     * configuration will apply EXCEPT where specified by the options
+     * object. In other words, if the default specifies values a, b,
+     * and c, and the options object specifies just c, then the
+     * default values for a and b will be used, and the options value
+     * for c.
+     *
+     * @param options - configuration options to be used for this instance. (Details above.)
+     */
     function Suite(options) {
         var self = this;
         var tests = [];
@@ -8,7 +19,7 @@ var OneBanana = (function() {
         this.name = options.name;
         this.passed = 0;
         this.failed = 0;
-        this.renderer = new Suite.Renderer(options.renderer);
+        this.listeners = new Suite.CompositeListener(options.listeners, options.renderer);
 
         this.setup = function() {
             options.setup && options.setup();
@@ -39,7 +50,7 @@ var OneBanana = (function() {
 
         this.run = function(k) {
             reset();
-            self.renderer.suiteStart(self);
+            self.listeners.suiteStart(self);
             var next = (function() {
                 var i = -1;
                 return function() {
@@ -53,7 +64,7 @@ var OneBanana = (function() {
                         });
                     }
                     else {
-                        self.renderer.suiteDone(self);
+                        self.listeners.suiteDone(self);
                         if (k) k();
                     }
                 };
@@ -133,10 +144,10 @@ var OneBanana = (function() {
         this.run = function(k) {
             reset();
             var a = new Suite.Asserts(self);
-            suite.renderer.testStart(self);
+            suite.listeners.testStart(self);
             function done() {
                 a.checkCalled();
-                suite.renderer.testDone(self);
+                suite.listeners.testDone(self);
                 suite.teardown();
                 k();
             }
@@ -156,11 +167,11 @@ var OneBanana = (function() {
             }
         }
         this.pass = function(msg) {
-            suite.renderer.assertPassed(msg || "ok");
+            suite.listeners.assertPassed(msg || "ok");
             self.passed++;
         };
         this.fail = function(msg) {
-            suite.renderer.assertFailed(msg || "ok");
+            suite.listeners.assertFailed(msg || "ok");
             self.failed++;
         };
 
@@ -170,15 +181,9 @@ var OneBanana = (function() {
         }
     };
 
-    Suite.Renderer = function Renderer(def) {
-        var defaults = new Suite.ConsoleRenderer();
-        def = def || {};
-        for (p in defaults) {
-            def[p] = def[p] || defaults[p];
-        }
-        return def;
-    };    
-
+    /**
+     * Renders test results to the console.
+     */
     Suite.ConsoleRenderer = function ConsoleRenderer(c) {
         c = c || console;
         this.log = function(msg) {
@@ -208,9 +213,94 @@ var OneBanana = (function() {
         };
     };
 
+    /**
+     * Superclass for objects that want to listen for events during
+     * testing.
+     */
+    Suite.SuiteListener = function() {
+        this.log = function() {};
+        this.assertPassed = function() {};
+        this.assertFailed = function() {};
+        this.testStart = function() {};
+        this.testDone = function() {};
+        this.suiteStart = function() {};
+        this.suiteDone = function() {};
+    };
 
+    /**
+     * Serves as a nice way to delegate to multiple listeners.
+     */
+    Suite.CompositeListener = function(listeners, renderer) {
+        var listeners = listeners || [];
+        if (renderer) listeners.push(renderer); // The renderer is just another listener.
+        this.log = function(msg) {
+            listeners.map(function(l) { l.log(msg); });
+        };
+        this.assertPassed = function(msg) {
+            listeners.map(function(l) { l.assertPassed(msg); });
+        };
+        this.assertFailed = function(msg) {
+            listeners.map(function(l) { l.assertFailed(msg); });
+        };
+        this.testStart = function(msg) {
+            listeners.map(function(l) { l.testStart(msg); });
+        };
+        this.testDone = function(msg) {
+            listeners.map(function(l) { l.testDone(msg); });
+        };
+        this.suiteStart = function(msg) {
+            listeners.map(function(l) { l.suiteStart(msg); });
+        };
+        this.suiteDone = function(msg) {
+            listeners.map(function(l) { l.suiteDone(msg); });
+        };
+        this.add = function(l) {
+            if (l) listeners.push(l);
+        };
+        this.contains = function(l) {
+            return listeners.indexOf(l) > -1;
+        };
+    };
+    Suite.CompositeListener.prototype = new Suite.SuiteListener();
+
+    /**
+     * Renders test results to the console.
+     */
+    Suite.ConsoleRenderer = function ConsoleRenderer(c) {
+        c = c || console;
+        this.log = function(msg) {
+            c.log("    " + msg);
+        },
+        this.assertPassed = function(msg) {
+            c.log("    " + msg);
+        },
+        this.assertFailed = function(msg) {
+            c.log("  * FAILED: " + msg);
+        },
+        this.testStart = function(test) {
+            c.log(test.name + ":");
+        },
+        this.testDone = function (test) {
+            var status = "(p: " + test.passed + ", f: " + test.failed + ")";
+            c.log("    " + (test.failed ? "FAILED" : "PASSED") + " " + status);
+        },
+        this.suiteStart = function(suite) {
+            c.log("Suite: " + suite.name);
+        },
+        this.suiteDone = function(suite) {
+            c.log("Finished Suite: " + suite.name);
+            c.log("    asserts passed: " + suite.passed);
+            c.log("    asserts failed: " + suite.failed);
+            c.log("SUITE " + ((suite.failed) ? "FAILED" : "PASSED"));
+        };
+    };
+    Suite.ConsoleRenderer.prototype = new Suite.SuiteListener();
+
+
+    /**
+     * Renders test results to the DOM.
+     */
     Suite.DomRenderer = function DomRenderer(container, doc) {
-        Suite.ConsoleRenderer.call(this);   // Extends ConsoleRenderer
         doc = doc || window.document;
         container = getContainer(container);
         this.suiteStart = function(suite) {
@@ -292,13 +382,20 @@ var OneBanana = (function() {
             }
         }
     };
+    Suite.DomRenderer.prototype = new Suite.SuiteListener();
 
+    /**
+     * Establish new default config for Suite instances. This takes
+     * the new options AS-IS. They completely overwrite the existing
+     * configuration.
+     */
     Suite.configure = function(options) {
-        for (p in options) {
-            defaults[p] = options[p];
-        }
+        defaults = options;
     };
 
+    /**
+     * Get the current default config.
+     */
     Suite.getConfiguration = function() {
         var c = {};
         for (p in defaults) {
@@ -309,16 +406,18 @@ var OneBanana = (function() {
 
     function getOptions(options) {
         options = options || {};
-        for (p in defaults) {
-            if (!(p in options)) {
-                options[p] = defaults[p];
-            }
-        }
+        options.name = options.name || defaults.name;
+        options.renderer = options.renderer || defaults.renderer;
+        options.listeners = Array.prototype.concat(
+            (options.listeners || []),
+            defaults.listeners
+        );
         return options;
     };
 
     var defaults = {
-        renderer: new Suite.ConsoleRenderer(console)
+        renderer: new Suite.ConsoleRenderer(console),
+        listeners: []
     };
 
     return Suite;

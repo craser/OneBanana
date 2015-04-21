@@ -1,22 +1,15 @@
-function MockRenderer() {
-    this.log = function() {};
-    this.assertPassed = function() {};
-    this.assertFailed = function() {};
-    this.testStart = function() {};
-    this.testDone = function() {};
-    this.suiteDone = function() {};
-    this.suiteStart = function() {};
-}
+function MockRenderer() {};
+MockRenderer.prototype = new OneBanana.SuiteListener();
 
 function MockSuite(name) {
     this.name = name || "MockSuite";
     this.passed = 0;
     this.failed = 0;
-    this.renderer = new MockRenderer();
     this.setup = function() {};
     this.teardown = function() {};
     this.test = function() {};
     this.run = function() {};
+    this.listeners = new MockRenderer();
 }
 
 function MockTest(name) {
@@ -96,6 +89,68 @@ function MockDocument() {
         return new MockText(text);
     };
 }
+
+new OneBanana({name: "SuiteListener" }).test (
+    function create_SuiteListener(test) {
+        var l = new OneBanana.SuiteListener();
+        test.ok(l.log, "Must have log.");
+        test.ok(l.assertPassed, "Must have assertPassed.");
+        test.ok(l.assertFailed, "Must have assertFailed.");
+        test.ok(l.testStart, "Must have testStart.");
+        test.ok(l.testDone, "Must have testDone.");
+        test.ok(l.suiteStart, "Must have suiteStart.");
+        test.ok(l.suiteDone, "Must have suiteDone.");
+    },
+    function create_CompositeListener(test) {
+        function MockListener() {
+            this.log = function(msg) {
+                test.ok(msg == "LOG", "Must pass correct message. (Found: " + msg + ")");
+            };
+            this.assertPassed = function(msg) {
+                test.ok(msg == "ASSERT PASSED", "Must pass correct message. (Found: " + msg + ")");
+            };
+            this.assertFailed = function(msg) {
+                test.ok(msg == "ASSERT FAILED", "Must pass correct message. (Found: " + msg + ")");
+            };
+            this.testStart = function(msg) {
+                test.ok(msg == "TEST START", "Must pass correct message. (Found: " + msg + ")");
+            };
+            this.testDone = function(msg) {
+                test.ok(msg == "TEST DONE", "Must pass correct message. (Found: " + msg + ")");
+            };
+            this.suiteStart = function(msg) {
+                test.ok(msg == "SUITE START", "Must pass correct message. (Found: " + msg + ")");
+            };
+            this.suiteDone = function(msg) {
+                test.ok(msg == "SUITE DONE", "Must pass correct message. (Found: " + msg + ")");
+            };
+        }
+        
+        var listeners = [
+            new MockListener(),
+            new MockListener()
+        ];
+        
+        var l = new OneBanana.CompositeListener(listeners);
+        listeners.map(function(p) {
+            test.mustCall(p, "log");
+            test.mustCall(p, "assertPassed");
+            test.mustCall(p, "assertFailed");
+            test.mustCall(p, "testStart");
+            test.mustCall(p, "testDone");
+            test.mustCall(p, "suiteStart");
+            test.mustCall(p, "suiteDone");
+        });
+        
+        l.log("LOG");
+        l.assertPassed("ASSERT PASSED");
+        l.assertFailed("ASSERT FAILED");
+        l.testStart("TEST START");
+        l.testDone("TEST DONE");
+        l.suiteStart("SUITE START");
+        l.suiteDone("SUITE DONE");
+    }
+);
 
 new OneBanana({ name: "Asserts" }).test(
     function asserts_ok(test) {
@@ -234,18 +289,18 @@ new OneBanana({ name: "Test" }).test(
     },
     function test_pass(test) {
         var s = new MockSuite();
-        s.renderer.assertPassed = function(m) { test.ok((m === "PASS MESSAGE"), "Message must be 'PASS MESSAGE'"); };
+        s.listeners.assertPassed = function(m) { test.ok((m === "PASS MESSAGE"), "Message must be 'PASS MESSAGE'"); };
         var t = new OneBanana.Test(function() {}, s);
-        test.mustCall(s.renderer, "assertPassed");
+        test.mustCall(s.listeners, "assertPassed");
         t.pass("PASS MESSAGE");
         test.ok(t.passed == 1, "Must reflect 1 passed test.");
         test.ok(t.failed == 0, "Must reflect 0 failed tests.");
     },
     function test_fail(test) {
         var s = new MockSuite();
-        s.renderer.assertFailed = function(m) { test.ok((m === "FAILED MESSAGE"), "Message must be 'FAILED MESSAGE'"); };
+        s.listeners.assertFailed = function(m) { test.ok((m === "FAILED MESSAGE"), "Message must be 'FAILED MESSAGE'"); };
         var t = new OneBanana.Test(function() {}, s);
-        test.mustCall(s.renderer, "assertFailed");
+        test.mustCall(s.listeners, "assertFailed");
         t.fail("FAILED MESSAGE");
         test.ok(t.passed == 0, "Must reflect 0 passed test.");
         test.ok(t.failed == 1, "Must reflect 1 failed tests.");
@@ -253,10 +308,10 @@ new OneBanana({ name: "Test" }).test(
     function test_rerun(test) {
         var s = new MockSuite();
         var t = new OneBanana.Test(function(t) { t.ok(false); t.ok(true); }, s);
-        test.mustCall(s.renderer, "testStart", 2);
-        test.mustCall(s.renderer, "testDone", 2);
-        test.mustCall(s.renderer, "assertPassed", 2);
-        test.mustCall(s.renderer, "assertFailed", 2);
+        test.mustCall(s.listeners, "testStart", 2);
+        test.mustCall(s.listeners, "testDone", 2);
+        test.mustCall(s.listeners, "assertPassed", 2);
+        test.mustCall(s.listeners, "assertFailed", 2);
         t.run(function() {});
         test.ok((t.passed == 1), "Must reflect 1 passed test. (passed: " + t.passed + ")");
         test.ok((t.failed == 1), "Must reflect 1 failed test. (failed: " + t.failed + ")");
@@ -278,11 +333,12 @@ new OneBanana({ name: "Test" }).test(
 
 new OneBanana({ name: "Suite",
                 setup: function() {},
-                teardown: (function(originalConfig) {
+                teardown: (function() {
+                    var original = OneBanana.getConfiguration();
                     return function() {
-                        OneBanana.configure(originalConfig);
+                        OneBanana.configure(original);
                     };
-                }(OneBanana.getConfiguration()))
+                }())
               }
              ).test(
 
@@ -294,30 +350,29 @@ new OneBanana({ name: "Suite",
         // Test that the configuration was stored correctly.
         var c = OneBanana.getConfiguration();
         test.ok(c.name == "SUITE", "Default Suite name must be 'SUITE'.");
-        test.ok(c.renderer === r, "Default Renderer must be MockRenderer.");
+        test.ok(c.renderer == r, "Default Renderer must be MockRenderer.");
 
         var s = new OneBanana();
         test.ok((s.name === "SUITE"), "Suite name must be 'SUITE'.");
-        test.ok((s.renderer === r), "Renderer must be assigned correctly.");        
+        test.ok((s.listeners.contains(r)), "Renderer must be assigned correctly.");        
     },
     function suite_teardown_check(test) {
+        test.expect(2);               // Default name, check renderer.
         var c = OneBanana.getConfiguration();
         test.ok(c.name == null, "Default name should be null. (Found: " + c.name + ")");
-        test.ok(c.renderer instanceof OneBanana.ConsoleRenderer, "Render to the console by default.");        
+        test.ok(c.renderer instanceof OneBanana.ConsoleRenderer, "Render to the console by default.");
     },
-
-
     function suite_create(test) {
         var r = new MockRenderer();
         var suite = new OneBanana({ name: "SUITE", renderer: r});
         test.ok((suite.name === "SUITE"), "Suite name must be 'SUITE'.");
-        test.ok((suite.renderer === r), "Renderer must be assigned correctly.");
+        test.ok((suite.listeners.contains(r)), "Renderer must be assigned correctly.");
     },
     function suite_test(test) {
         var r = new MockRenderer();
         var suite = new OneBanana({ name: "SUITE", renderer: r});
         test.ok((suite.name === "SUITE"), "Suite name must be 'SUITE'.");
-        test.ok((suite.renderer === r), "Renderer must be assigned correctly.");
+        test.ok((suite.listeners.contains(r)), "Renderer must be assigned correctly.");
         
         test.mustCall(r, "assertPassed", 4);
         test.mustCall(r, "assertFailed", 5);
@@ -350,7 +405,7 @@ new OneBanana({ name: "Suite",
         var r = new MockRenderer();
         var suite = new OneBanana({ name: "SUITE", renderer: r});
         test.ok((suite.name === "SUITE"), "Suite name must be 'SUITE'.");
-        test.ok((suite.renderer === r), "Renderer must be assigned correctly.");
+        test.ok((suite.listeners.contains(r)), "Renderer must be assigned correctly.");
         
         test.mustCall(r, "assertPassed", 8);
         test.mustCall(r, "assertFailed", 10);
@@ -388,7 +443,7 @@ new OneBanana({ name: "Suite",
         var r = new MockRenderer();
         var suite = new OneBanana({ name: "SUITE", renderer: r});
         test.ok((suite.name === "SUITE"), "Suite name must be 'SUITE'.");
-        test.ok((suite.renderer === r), "Renderer must be assigned correctly.");
+        test.ok((suite.listeners.contains(r)), "Renderer must be assigned correctly.");
         
         test.mustCall(r, "assertPassed", 4);
         test.mustCall(r, "assertFailed", 5);
