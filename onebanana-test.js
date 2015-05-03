@@ -356,6 +356,33 @@ new OneBanana({ name: "Suite",
         test.ok((s.name === "SUITE"), "Suite name must be 'SUITE'.");
         test.ok((s.listeners.contains(r)), "Renderer must be assigned correctly.");        
     },
+    function suite_configure_listeners(test) {
+        var listeners = [
+            new MockRenderer(),
+            new MockRenderer(),
+            new MockRenderer()
+        ];
+        listeners.map(function(p) {
+            test.mustCall(p, "assertPassed");
+            test.mustCall(p, "assertFailed");
+            test.mustCall(p, "testStart");
+            test.mustCall(p, "testDone");
+            test.mustCall(p, "suiteStart");
+            test.mustCall(p, "suiteDone");
+        });
+
+        var config = {
+            renderer: new MockRenderer(),
+            listeners: listeners
+        };
+
+        OneBanana.configure(config);
+        var suite = new OneBanana({ name: "SUITE" });
+        suite.test(
+            function pass(test) { test.ok(true, "YAY!"); },
+            function fail(test) { test.ok(false, "NAY!"); }
+        );
+    },
     function suite_teardown_check(test) {
         test.expect(2);               // Default name, check renderer.
         var c = OneBanana.getConfiguration();
@@ -505,7 +532,7 @@ new OneBanana({ name: "Suite",
             function c(t) { t.ok(true, "PASSED"); }
         );
         test.ok((numCalled == 3), "Can't just call suite.teardown, must actually call the teardown function. (numCalled: " + numCalled + ")");
-    }    
+    }
 );
 
 new OneBanana({ name: "ConsoleRenderer" }).test(
