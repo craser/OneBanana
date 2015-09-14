@@ -1,7 +1,11 @@
 OneBanana
 =========
 
-OneBanana is a JavaScript testing framework built around the idea that testing JavaScript should be as straight-forward as possible.
+OneBanana is a JavaScript testing framework built around the idea that testing JavaScript should be as straight-forward as possible. 
+
+I typically use it with [PhantomJS](http://phantomjs.org/) (and
+[runtest.js](https://github.com/craser/OneBanana/blob/master/runtest.js)
+relies on it), but you don't have to. Use whatever runtime you like.
 
 
 Running on the Command Line
