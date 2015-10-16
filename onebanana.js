@@ -86,6 +86,34 @@ OneBanana.Asserts = function Asserts(test) {
             }
         });
     };
+    this.mustThrow = function(obj, funcName) {
+        var check = function() {
+            if (!callCount) {
+                test.fail("Function " + funcName + " was not called.");
+            }
+            else if (callCount != throwCount) {
+                test.fail("Function " + funcName + " was called " + callCount + " times, but threw an exception " + throwCount + " times.");
+            }
+            else {
+                test.pass("Function " + funcName + " was called " + callCount + " times, and threw an exception " + throwCount + " times.");
+            }
+        };
+        var callCount = 0;
+        var throwCount = 0;
+        callChecks.push(check);
+        obj[funcName] = (function(original) {
+            return function() {
+                try {
+                    callCount++;
+                    original.apply(obj, arguments);
+                }
+                catch (e) {
+                    throwCount++;
+                    throw e;
+                }
+            };
+        }(obj[funcName]));
+    };
     this.mustCall = function(obj, funcName, times) {
         var check = function() {
             if (!times && count > 0) {

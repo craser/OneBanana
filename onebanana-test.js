@@ -212,6 +212,25 @@ new OneBanana({ name: "Asserts" }).test(
         obj.a();
         a.checkCalled();
     },
+    function asserts_mustThrow(test) {
+        var t = new MockTest();
+        var a = new OneBanana.Asserts(t);
+        var one = {
+            a: function() { throw "ERROR"; },
+            b: function() {}
+        };
+
+        test.mustCall(t, "pass");
+        test.mustCall(t, "fail");
+
+        a.mustThrow(one, "a");
+        a.mustThrow(one, "b");
+
+        try { one.a(); } catch (e) {} // We detect the throw, but still throw.
+        one.b();                      // Shouldn't throw.
+
+        a.checkCalled();
+    },
     function asserts_fail(test) {
         var t = new MockTest();
         t.fail = function(m) { test.ok((m === "FAIL"), "Message must be 'FAIL'"); };
