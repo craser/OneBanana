@@ -26,6 +26,7 @@ function MockTest(name) {
     this.pass = function() {};
     this.fail = function() {};
     this.run = function() {};
+    this.async = function() {};
 }
 
 function MockConsole() {
@@ -108,6 +109,17 @@ new OneBanana({ name: "Asserts" }).test(
         a.ok(true, "PASS");
         a.ok(false, "FAIL");
     },
+    function asserts_async(test) {
+        var t = new MockTest();
+        t.async = function(ms) {
+            test.ok(ms == 3, "Asserts.async() should pass argument through to Test.async.");
+        };
+
+        var a = new OneBanana.Asserts(t);
+
+        test.mustCall(t, "async");
+        a.async(3);        
+    },
     function asserts_expect_pass(test) {
         var t = new MockTest();
         var a = new OneBanana.Asserts(t);
@@ -170,6 +182,19 @@ new OneBanana({ name: "Asserts" }).test(
 
         obj.a();
         a.checkCalled();
+    },
+    function asserts_mustCallReturn(test) {
+        var t = new MockTest();
+        var a = new OneBanana.Asserts(t);
+        var obj = {
+            a: function() { return "RETURN VALUE"; }
+        };
+
+        a.mustCall(obj, "a");
+        var ret = obj.a();
+        
+        // Ensure that calling obj.a() returns "RETURN VALUE"
+        test.ok("RETURN VALUE" == ret, "Wrapper function must return value of wrapped function.");
     },
     function asserts_mustCallTimes(test) {
         var t = new MockTest();
@@ -237,6 +262,16 @@ new OneBanana({ name: "Asserts" }).test(
         var a = new OneBanana.Asserts(t);
         test.mustCall(t, "fail");
         a.fail("FAIL");
+    },
+    function asserts_async(test) {
+        var t = new MockTest();
+        t.async = function() {
+            return "BOGUS";
+        };
+        test.mustCall(t, "async");
+        var a = new OneBanana.Asserts(t);
+        var done = a.async();
+        test.ok(done == "BOGUS", "Return value from async() should be string 'BOGUS'. Found: " + done);
     }
 );
 
@@ -268,6 +303,57 @@ new OneBanana({ name: "Test" }).test(
         t.fail("FAILED MESSAGE");
         test.ok(t.passed == 0, "Must reflect 0 passed test.");
         test.ok(t.failed == 1, "Must reflect 1 failed tests.");
+    },
+    function test_asyncInFunction(test) {
+        var done = test.async(10000);
+        var s = new MockSuite();
+        var f = function(t) {
+            t.async();
+            test.ok(true, "Test function called.");
+        };
+        var t = new OneBanana.Test(f, s); // Initiating async operation
+        var k = function() {
+            test.ok(true, "Should eventually call k.");
+            done();
+        };
+        test.mustCall(t, "fail");
+        t.run(k);
+    },
+    function test_asyncInTest(test) {
+        var done = test.async(10000);
+        var s = new MockSuite();
+        var f = function(t) {
+            test.ok(true, "Test function called.");
+        };
+        var t = new OneBanana.Test(f, s, true); // Initiating async operation
+        var k = function() {
+            test.ok(true, "Should eventually call k.");
+            done();
+        };
+        test.mustCall(t, "fail");
+        t.run(k);
+    },
+    function test_asyncDone(test) {
+        var s = new MockSuite();
+        var f = function(t) {
+            t.async()();
+        };
+        var t = new OneBanana.Test(f, s);
+        var k = function() {
+            test.ok(true, "Next function called.");
+        };
+        t.run(k);
+        test.expect(1);        
+    },
+    function test_asyncDoneSame(test) {
+        var s = new MockSuite();
+        var f = function(t, d) {
+            test.ok(true, "Test function called.");
+            var D = t.async();
+            test.ok(d === D, "Done function argument and return value must be the same function.");
+        };
+        var t = new OneBanana.Test(f, s);
+        t.run(function() {});
     },
     function test_rerun(test) {
         var s = new MockSuite();

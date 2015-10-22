@@ -69,6 +69,9 @@ OneBanana.Asserts = function Asserts(test) {
     var self = this;
     var callChecks = [];
     var okCount = 0;
+    this.async = function(ms) {
+        return test.async(ms);
+    };
     this.ok = function(bool, msg) {
         okCount++;
         bool ? test.pass(msg) : test.fail(msg);
@@ -134,7 +137,7 @@ OneBanana.Asserts = function Asserts(test) {
         obj[funcName] = (function(original) {
             return function() {
                 count++;
-                original.apply(obj, arguments);
+                return original.apply(obj, arguments);
             };
         }(obj[funcName]));
 
@@ -152,6 +155,9 @@ OneBanana.Asserts = function Asserts(test) {
 
 OneBanana.Test = function Test(f, suite, asynchronous) {
     var self = this;
+    var done = null;
+    var timeout = null;
+    
     this.name = f.name || "anonymous";
     this.passed = 0;
     this.failed = 0;
@@ -159,21 +165,18 @@ OneBanana.Test = function Test(f, suite, asynchronous) {
         reset();
         var a = new OneBanana.Asserts(self);
         suite.renderer.testStart(self);
-        function done() {
+        done = function() {
+            untick();
             a.checkCalled();
             suite.renderer.testDone(self);
             suite.teardown();
             k();
-        }
+        };
         try {
+            tick(done);
             suite.setup();
-            if (asynchronous) {
-                f(a, done);
-            }
-            else {
-                f(a);
-                done();
-            }            
+            f(a, done);
+            if (!asynchronous) done();
         }
         catch (e) {
             self.fail(e);
@@ -188,6 +191,25 @@ OneBanana.Test = function Test(f, suite, asynchronous) {
         suite.renderer.assertFailed(msg || "ok");
         self.failed++;
     };
+    this.async = function(ms) {
+        if (ms) tick(done, ms);
+        asynchronous = true;
+        return done;
+    };
+
+    function tick(done, ms) {
+        ms = ms || 5000;
+        untick();
+        timeout = setTimeout(function() {
+            self.fail("Test timed out after " + ms + "ms.");
+            done();
+        }, ms);
+    }
+
+    function untick() {
+        if (timeout) clearTimeout(timeout);
+        timeout = null;
+    }
 
     function reset() {
         self.passed = 0;
